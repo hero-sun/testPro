@@ -1,0 +1,1283 @@
+	<%= stylesheet_link_tag "english/prismplayer"%> 
+  <%= javascript_include_tag "english/prismplayer"%>
+  <% content_for :title do %>
+		<%= @article.title%>
+	<% end %>
+  <script type="text/javascript">
+    <% if @article.category == Article::TYPE_VIDEO %>
+        $(".container").hide();
+        $(".container p ,.container h1,.container h2,.container h3,.container h4,.container h5,.container h6,.container a,.container img").hide();
+    <% end %>
+  </script>
+<script type="text/javascript">
+ <% if @page and @page.p_index == 1 %>
+  $.post('http://m<%= Settings.session_domain %><%= add_click_count_article_path(@article) %>');
+ <% end %>
+</script>
+  <%= javascript_include_tag "jquery_ujs_3" %>
+<% if @article.show_default_thumbnail.to_i == 1 %>
+  <img src="http://www.nbdpress.com/images/nbd_icon_500.jpg" style="width:0px;height:0px;overflow:hidden;display:block" />
+<% end %>
+<% @title = @article.title %>
+  <% #render :partial => "mobile/articles/crumb", :locals=>{:first_column => @first_column, :title => @article.title} %>
+	<% unless (@article.columns.pluck(:id) & Column::LIVE_NEWS_COLUMNS.values).present? %>
+		<div class="page-header" style="padding-bottom: 12px;display: none;">
+		  <h1><%= @article.title %></h1>
+		</div>
+	<% end %>
+	<% if @article.digest.present? %>
+		<blockquote class="article-digest">
+		  <p><%= @article.digest.html_safe %></p>
+		</blockquote>
+	<% end %>
+	<p class="article-meta-">
+		<span style="color: #00499d;"><%= @article.ori_source%> 丨 </span>
+		<span> <%= @article.ori_author %></span>
+		<span style="display: block;line-height: 26px;"><%= @article.published_at.strftime("%H:%S,%B %-d,%Y") if @article.published_at.present? %> Beijing Time</span>
+	</p>
+	<p style="text-align: center;">
+		<% if @article.third_author.blank? && @article.show_thumb? && @article.image_id.present? && (@page.nil? or @page.p_index == 1) %>
+      <% if @article.created_at > Time.new(2016,04,21,16,50)%>
+        <%= image_tag(@article.image.thumbnail_url(:thumb_mb), :class => "img-thumbnail") if @article.image.present? && @page.p_index == 1 %>
+      <% else %>
+			  <%= image_tag(@article.image.thumbnail_url(:thumb_hl), :class => "img-thumbnail") if @article.image.present? && @page.p_index == 1 %>
+      <% end %>
+		<% end %>
+	</p>
+	<div class="n_articleContainer">
+		<%= @page.content.html_safe if @page%>
+	</div>
+	<ul class="article-related">
+    <% @article.relate_article_children.order("pos desc").limit(2).each do |a| %>
+			<li>
+				<%= link_to a.children_title, a.children_url, {:target => "_blank"} %>
+			</li>
+		<% end %>
+	</ul>
+	<% if @article.pages.count > 1 %>
+    <div class="pagination">
+      <%= article_paginate_mobile(@article, @page, :for_subdomain => 'm') %>
+    </div>
+    <div class="clear"></div>
+  <% end %>
+
+	<% if @article.copyright? %>
+	  <%#= render :partial => "/articles/copyright" %>
+	<% end %>
+
+
+<script>
+  $(function() {
+
+
+    $('.js-confirm').click(function() {
+      var str = prompt('请输入屏蔽理由:'),
+          $ele = $(this);
+      //当有输入时
+      if(str != null && str != '') {
+        var href = $ele.attr('url'),
+            form = $('<form id="form1" method="post" action="' + href + '"></form>'),
+            metadataInput = '<input name="comment" value="'+str+'" type="hidden" />';
+
+        //添加表单并提交
+        form.hide().append(metadataInput).appendTo('body');
+        form.submit();
+      } else {
+        return;
+      }
+    });
+  })
+</script>
+
+    <% if @current_staff.present? && @current_staff.authority_of_check? %>
+      <p class="verify-group">
+      <% valid = (@article.draft? || @article.pending?) %>
+      <%= article_check_link_help('审核通过', 'check_article_allow', @article, valid) %>
+      <% valid = (@article.draft? || @article.pending? || @article.check_finished?) %>
+      <%= article_check_link_help('审核通过并发布', 'check_article_publish', @article, valid) %>
+      <% valid = (@article.draft? || @article.pending? || @article.check_finished?) %>
+      <%= article_check_link_help('审核拒绝', 'check_article_denies', @article, valid) %>
+      <% valid = (@article.draft? || @article.pending? || @article.denied?) %>
+      <%= article_check_link_help('审核转交', 'check_article_deliver', @article, valid) %>
+      <% valid = (@article.check_finished? || @article.published?) %>
+        <%= article_check_link_help_forbid('屏蔽文章', 'check_article_banned', @article, valid) %>
+      <% if false %>
+      <% valid = (@article.check_finished? || @article.published?) %>
+        <%= article_check_link_help('取下文章(重新审核)', 'check_article_deliver', @article, valid) %>
+      </p>
+      <% end %>
+
+      <br/>
+      <% end # if @current_staff.present? && @current_staff.authority_of_check? %>
+
+    </style>
+    <div class="products_pic"  id="statistics"> </div>
+    <div  class="article-list">
+       <%unless @recommend_articles[:articles].blank?%>
+       <h6>相关文章</h6>
+
+        <% if @article.id != 1020816 %>
+          <% @recommend_articles[:articles].each  do |article| %>
+                  <ul class="article-ul">
+                    <li>
+                      <% unless  article.image.nil?%>
+                          <%= render_article_link_v4(article, img_opts: { version: :thumb_left, size: '192x120' }, link_opts: { class: 'fl news-img' },subdomain:Settings::mobile_sub_domain) unless article.image.nil? %>
+                     <%else %>
+                         <%= link_to replace_subdomain(article, Settings::mobile_sub_domain)  do  %>
+                              <%= image_tag('/images/mobile_apps/logo_1.jpg', :class=> 'fl news-img')%>
+                          <%end%>
+                     <%end%>
+                      <div class="article-text">
+                        <span><%= render_article_link_v4(article, {title_limit: 20,link_opts: { class: 'news-title-a' },subdomain:Settings::mobile_sub_domain}) %></span>
+                        <abbr><%= nbd_time_f2(get_time_article(article)) %></abbr>
+                      </div>
+                    </li>
+                  </ul>
+          <%end%>
+        <% else %>
+          <% special_articles = Article.published.where(id: [902185,901886,951849,960619,1020800,1020791,989539]) %>
+          <% special_articles.each do |article| %>
+          <ul class="article-ul">
+              <li>
+                <% unless  article.image.nil?%>
+                    <%= render_article_link_v4(article, img_opts: { version: :thumb_left, size: '192x120' }, link_opts: { class: 'fl news-img' },subdomain:Settings::mobile_sub_domain) unless article.image.nil? %>
+               <%else %>
+                   <%= link_to replace_subdomain(article, Settings::mobile_sub_domain)  do  %>
+                        <%= image_tag('/images/mobile_apps/logo_1.jpg', :class=> 'fl news-img')%>
+                    <%end%>
+               <%end%>
+                <div class="article-text">
+                  <span><%= render_article_link_v4(article, {title_limit: 20,link_opts: { class: 'news-title-a' },subdomain:Settings::mobile_sub_domain}) %></span>
+                  <abbr><%= nbd_time_f2(get_time_article(article)) %></abbr>
+                </div>
+              </li>
+            </ul>
+          <% end %>
+        <% end %>
+        <% end %>
+    </div>
+
+     <div  class="article-list">
+       <%if @lastest_origin.present?%>
+          	<h6>热点</h6>
+
+                <% @lastest_origin.each  do |article| %>
+                    <ul class="article-ul">
+                    <li>
+                    <% unless  article.image.nil?%>
+                          <%= render_article_link_v4(article, img_opts: { version: :thumb_left, size: '192x120' }, link_opts: { class: 'fl news-img' },subdomain:Settings::mobile_sub_domain) unless article.image.nil? %>
+                     <%else %>
+                           <%= link_to replace_subdomain(article, Settings::mobile_sub_domain)  do  %>
+                                <%= image_tag('/images/mobile_apps/logo_1.jpg', :class=> 'fl news-img')%>
+                            <%end%>
+                     <%end%>
+                      <div class="article-text">
+                        <span><%= render_article_link_v4(article, {title_limit: 20,link_opts: { class: 'news-title-a' },subdomain:Settings::mobile_sub_domain}) %></span>
+
+                        <abbr><%= nbd_time_f2(get_time_article(article)) %></abbr>
+                      </div>
+                    </li>
+                  </ul>
+                <%end%>
+      <%end%>
+    </div>
+<!-- 评论 -->
+  <style type="text/css">
+  .vedioItem {
+    background: transparent!important;
+    height: auto!important;
+  }
+  .comment h1 {
+    font-size: 22px;
+    color: #7b7b7b
+  }
+  .comment h1 span{
+    font-size: 16px;
+    color:#585858;
+    font-weight: normal;
+    float: right;
+    margin-top: 2px
+  }
+  .comment h1 abbr{
+    color: #d44743;
+    font-size: 16px;
+  }
+  #comment-text {
+    border: 1px solid #dae4eb;
+    box-shadow: 0 0 3px #fcfdfd;
+    width: 100%;
+    height: 100px;
+    border-radius: 6px;
+    padding: 6px;
+  }
+  #form_submit {
+    width: 108px;
+    line-height: 36px;
+    background-color: #1c4895;
+    color: white;
+    border: none;
+    outline: none;
+    border-radius: 5px;
+    font-size: 20px;
+    float: right;
+    margin-top: 12px;
+    text-align: center;
+    text-decoration: none;
+  }
+  .comment-ul   {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    margin-top: 15px;
+  }
+  .comment-ul li {
+    margin:3px 0;
+  }
+  .comment-img {
+    width: 56px;
+    height: 56px;
+    border-radius: 56px;
+    float: left;
+  }
+  .comment-ul-box span,abbr{
+    color: #9f9f9f
+  }
+  .comment-ul-box abbr{
+    float: right;
+    margin-top: -2px;
+  }
+  .text-p {
+    margin-top: 5px;
+    border-bottom: 1px solid #e5e5e5;
+    padding-bottom: 12px;
+    font-size: 14px
+  }
+  .comment-ul-box {
+    float: left;
+    width: 78%;
+    margin-left: 2%
+  }
+.comment-ul li:after {
+  content:".";
+  display:block;
+  height:0;
+  clear:both;
+  visibility:hidden
+}
+ .like{
+  position: relative;
+  top: 1px;
+  display: inline-block;
+  width: 20px;
+  height: 16px;
+  background: url("/images/mobile_apps/comment_like.png") no-repeat;
+  background-size:cover
+ }
+  .like-active{
+  position: relative;
+  top: 1px;
+  display: inline-block;
+  width: 20px;
+  height: 16px;
+  background: url("/images/mobile_apps/comment_likes.png") no-repeat;
+  background-size:cover
+ }
+ #link-column a{
+   color:#7a7a7a;
+ }
+.msg-p {
+  background: #fbfbfb;
+  border:1px solid #bababa;
+  width: 60%;
+ line-height: 60px;
+  margin: 0 auto;
+  text-align: center;
+  font-size: 20px;
+  box-shadow: 0 0 3px rgba(0,0,0,.3);
+  position: fixed;
+  top: 20%;
+  left: 20%;
+  display: none;
+ }
+
+.vedioItem{
+  width: 86%!important;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%,-50%);
+  -webkit-transform: translate(-50%,-50%);
+  z-index: 100
+}
+  </style>
+   
+   <script type="text/javascript">
+   $(function(){
+    // 评论提交
+    $("#form_submit").click(function(){
+      var Txt=$("#comment-text").val();
+      if(Txt==0){
+        $("#msg1").show();
+        $("#msg1").text("评论不能为空")
+        setTimeout(function(){
+         $("#msg1").hide()
+       },1000);
+        return false ;
+      }else {
+       $("#msg").show();
+       $("#msg").text("已发表成功") ;
+       setTimeout(function(){
+         $("#msg").hide()
+       },1000);
+        $.ajax({
+          url: $(this).parent("form").attr("action"),
+          data: $(this).parent("form").serialize(),
+          type: 'POST',
+        })
+        $(this).parent("form").find("#comment-text").val("")
+      }
+    })
+   //判断是否有显示评论
+   $(".comment-ul").each(function(){
+     var liLen=$(this).find("li") ;
+     if(liLen.length>0){
+      $(".comment-more").hide();
+     }else {
+      $(".comment-more").show();
+     }
+   })
+  })
+
+
+   </script>
+
+  
+
+ <script type="text/javascript">
+     var width = $(window).width() > 600 ? 600 : $(window).width()-50,
+      count = 0;
+      flag = $('.vedioItem').hasClass('aliyunVideo');
+
+  //判断是否为阿里云播放
+  if(flag) {
+    var arr = [];
+
+    $('.aliyunVideo').each(function(key, elem) {
+      arr.push({elem: $(elem).find('.prism-player').attr('id'), videoID: $(elem).find('.prism-player').attr('data-vid')});
+    });
+
+    //实例化运行
+    for(var i in arr) {
+      (function(i) {
+        executeRequest(arr[i].elem, arr[i].videoID);
+      })(i)
+    }
+
+  }
+
+  /**
+   * 实例化一个视频
+   * @author mao
+   * @version 1
+   * @date    2017-07-10
+   */
+  function executeRequest(elem, videoID) {
+    var that = arguments;
+    $.ajax({
+      type:'get',
+      url:'http://www.nbd.com.cn' + '/aliyun_services?aliyun_vedio=yes&timestamp=' + Date.parse(new Date()) + '&vedio_id='+ videoID,
+      success:function(res) {
+        $(".videoPlayBtn").show();
+        var option = {id: elem,autoplay: false ,width: width+"px",height: (width*3/4)+"px",vid: videoID,playauth: res.playAuth, showBarTime: 3000000, cover: res.vidio_data.VideoMeta.CoverURL};
+
+          player = new prismplayer(option);
+          
+          $(".videoPlayBtn").click(function(){
+            $(".container").show();
+            $(".container p ,.container h1,.container h2,.container h3,.container h4,.container h5,.container h6,.container a,.container img").hide();
+            $(".vedioItem").show();
+            player.play();
+          });
+
+          // player.addEventListener('ended',function(){
+          //   alert(2)
+          // });
+
+
+
+      },
+      
+    });
+  }
+
+
+
+
+ </script>
+
+  </p>
+	<style type="text/css">
+	  .bottom-nav {
+	      width: 100%;
+	      height: 48px;
+	      background-color:#f0f8ff;
+	      margin: 0;
+	      padding: 0;
+   	   }
+	    .bottom-left {
+	       float: right;
+	       height: 48px;
+	    }
+	    .bottom-left img {
+	       width: 85%;
+	       margin: 0 auto;
+	       max-width: 280px;
+	       margin-top: 10px;
+	       display: block
+	    }
+	    .bottom-right {
+	       float: right;
+	       height: 48px;
+	    }
+	     .jj {
+		    width: 80%;
+		    height: 40px;
+		    margin: 4px 0;
+		    max-width:56px;
+		    float: right;
+		    max-width:60px;
+		    margin-right: 3px;
+		    border-radius: 5px;
+	  }
+        .m_pictrue{
+          width: 100%;
+          margin-bottom: 20px;
+        }
+	</style>
+	<script type="text/javascript">
+		var div1=document.getElementById("cookies");
+	    var b=document.getElementById("b");
+	    var arr = document.cookie.split(';');
+	    var  flag=true ;
+	    for(var i=0;i<arr.length;i++){
+	      arr[i]=arr[i].trim();
+	      if(arr[i]=='NoneDisplay=true'){
+	        div1.style.display='none';
+	        b.style.background='transparent';
+	        flag=false;
+	        add();
+	        break;
+	      }
+	    };
+      $(".jj").on("touchstart",function(){
+        if(flag==true){
+          var d = new Date();
+          d.setHours(d.getHours()+3);
+            // d.setMinutes(d.getMinutes()+1);
+            document.cookie="NoneDisplay=true;expires="+d.toUTCString()+";path=/";
+            flag=false
+          $(".bottom-nav").css({
+              "background":" transparent"
+            })
+          add()
+          $("#cookies").animate({
+            "width":"0",
+           },300,function(){
+            $("#cookies").hide()
+           })
+           flag=false
+        }
+        else {
+          $("#cookies").show()
+          add1();
+            $(".bottom-nav").css({
+              "background":"#f0f8ff "
+            })
+          $("#cookies").animate({
+            "width":"83%"
+          })
+          flag=true
+        }
+      })
+      function add(){
+        $(".jj").attr("src","http://www.nbdpress.com/corp/2016app/images/exit.jpg")
+      }
+      function add1(){
+        $(".jj").attr("src","http://www.nbdpress.com/corp/2016app/images/shou.png")
+      }
+
+    var imgs = $(".article-ul a img");
+    for(var i=0;i<imgs.length;i++){
+      //imgs[i].attr('src',this.attr('data-aload'));
+      var url = imgs[i].getAttribute('data-aload');
+      if( url != null && url.length > 0){
+        imgs[i].setAttribute('src',url);
+      }
+    }
+</script>
+<script type="text/javascript">
+  //评论点赞
+   var liLens=$(".comment-ul li").length;
+   for(var i=0;i<liLens;i++){
+     $(".like").eq(i).attr("data-id",i)
+    }
+    var article_ids = <%= @article.id %> ;
+    var flag=true ;
+    function setCookie(c_name,value){
+        var exdate=new Date()
+         var newDate = new Date();
+         newDate.setHours(newDate.getHours()+24);
+         document.cookie=c_name+ "=" +value;expires="+d.toUTCString()+";
+      }
+     function getCookie(c_name) {
+        if (document.cookie.length>0)
+          {
+          c_start=document.cookie.indexOf(c_name + "=")
+          if (c_start!=-1)
+            {
+            c_start=c_start + c_name.length+1
+            c_end=document.cookie.indexOf(";",c_start)
+            if (c_end==-1) c_end=document.cookie.length
+            return unescape(document.cookie.substring(c_start,c_end))
+            }
+          }
+          return ""
+        }
+          $(".like").click(function(obj){
+            var $this=$(this);
+            var review_id = this.getAttribute("reveiw-id");
+            $(this).removeClass("like").addClass("like-active") ;
+            if (getCookie(review_id) !== ""){
+                 $("#msg2").show();
+                  $("#msg2").text("您已经赞过了")
+                  setTimeout(function(){
+                   $("#msg2").hide()
+                 },1000);
+                return false;
+            }else{
+              $.ajax({
+                      type: 'POST',
+                      url:"/reviews/"+review_id+"/support",
+                      success: function(data) {
+                          var num = data.data.support_num;
+                          $this.siblings(".like-b").text(num);
+                          $this.attr("upvote","yes");
+                          setCookie(review_id,"yes");
+                      }
+                });
+            }
+
+      })
+
+
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	    <%= stylesheet_link_tag "english/prismplayer"%> 
+    <%= javascript_include_tag "english/prismplayer"%>
+  <% content_for :title do %>
+		<%= @article.title%>
+	<% end %>
+<script type="text/javascript">
+ <% if @page and @page.p_index == 1 %>
+  $.post('http://m<%= Settings.session_domain %><%= add_click_count_article_path(@article) %>');
+ <% end %>
+</script>
+  <%= javascript_include_tag "jquery_ujs_3" %>
+<% if @article.show_default_thumbnail.to_i == 1 %>
+  <img src="http://www.nbdpress.com/images/nbd_icon_500.jpg" style="width:0px;height:0px;overflow:hidden;display:block" />
+<% end %>
+<% @title = @article.title %>
+  <% #render :partial => "mobile/articles/crumb", :locals=>{:first_column => @first_column, :title => @article.title} %>
+	<% unless (@article.columns.pluck(:id) & Column::LIVE_NEWS_COLUMNS.values).present? %>
+		<div class="page-header" style="padding-bottom: 12px">
+		  <h1><%= @article.title %></h1>
+		</div>
+	<% end %>
+	<% if @article.digest.present? %>
+		<blockquote class="article-digest">
+		  <p><%= @article.digest.html_safe %></p>
+		</blockquote>
+	<% end %>
+	<p class="article-meta-">
+		<span style="color: #00499d;"><%= @article.ori_source%> 丨 </span>
+		<span> <%= @article.ori_author %></span>
+		<span style="display: block;line-height: 26px;"><%= @article.published_at.strftime("%H:%S,%B %-d,%Y") if @article.published_at.present? %> Beijing Time</span>
+	</p>
+	<p style="text-align: center;">
+		<% if @article.third_author.blank? && @article.show_thumb? && @article.image_id.present? && (@page.nil? or @page.p_index == 1) %>
+      <% if @article.created_at > Time.new(2016,04,21,16,50)%>
+        <%= image_tag(@article.image.thumbnail_url(:thumb_mb), :class => "img-thumbnail") if @article.image.present? && @page.p_index == 1 %>
+      <% else %>
+			  <%= image_tag(@article.image.thumbnail_url(:thumb_hl), :class => "img-thumbnail") if @article.image.present? && @page.p_index == 1 %>
+      <% end %>
+		<% end %>
+	</p>
+	<div class="n_articleContainer">
+		<%= @page.content.html_safe if @page%>
+	</div>
+	<ul class="article-related">
+    <% @article.relate_article_children.order("pos desc").limit(2).each do |a| %>
+			<li>
+				<%= link_to a.children_title, a.children_url, {:target => "_blank"} %>
+			</li>
+		<% end %>
+	</ul>
+	<% if @article.pages.count > 1 %>
+    <div class="pagination">
+      <%= article_paginate_mobile(@article, @page, :for_subdomain => 'm') %>
+    </div>
+    <div class="clear"></div>
+  <% end %>
+
+	<% if @article.copyright? %>
+	  <%#= render :partial => "/articles/copyright" %>
+	<% end %>
+	<p class="article-meta bottom" style="margin:20px 0;border-top: 2px solid #e2e2e2; padding-top: 11px;" >
+            <span style= "float:right;color: #00499d;font-size: 16px;margin-top:6px">
+                <span>Editor:</span>
+                <span style="color: #333">  <%= article_editor_in_charge(@article) %></span>
+                <div style="float: left;margin-top: -18px">
+                	<div class="bshare-custom"  >
+			           	<div class="bsPromo bsPromo2"></div>
+				          <a title="分享到微信" class="bshare-weixin"></a>
+		              <a title="分享到Twitter" class="bshare-twitter"></a>
+          				<a title="分享到新浪微博" class="bshare-sinaminiblog"></a>
+          				<a title="分享到Facebook" class="bshare-facebook" ></a>
+          				<a title="分享到LinkedIn" class="bshare-linkedin" ></a>
+          			</div>
+                </div>
+                <div style="clear:both"></div>
+            </span>
+            <style type="text/css">
+	            #text-box{
+	            	padding: 10px!important;
+	            	margin-top: 30px;
+	            }
+            		#text-box img {
+							width: 94%!important;
+							display: block;
+							margin: 0 auto!important;
+							}
+            	.bshare-custom .bshare-sinaminiblog {
+						    background: url(/images/english/v1/m-weibo.jpg) no-repeat !important;
+						  }
+						   .bshare-custom .bshare-twitter {
+						    background: url(/images/english/v1/m-t.jpg) no-repeat !important;
+						  }
+						  .bshare-custom .bshare-facebook {
+						    background: url(/images/english/v1/m-f.jpg) no-repeat !important;
+						  } 
+						  .bshare-custom .bshare-linkedin {
+						    background: url(/images/english/v1/m-in.jpg) no-repeat !important;
+						  }
+						  .bshare-custom .bshare-weixin {
+						    background: url(/images/english/v1/m-weixin.jpg) no-repeat !important;
+						    width: 31px!important;
+						  }
+					
+						  .bshare-custom a {
+						    text-decoration: none;
+						    height: 26px!important;
+						    width: 28px!important;
+						    padding: 0!important;
+						    margin: 0!important;
+						    cursor: pointer;
+						    vertical-align: middle;
+						    display: inline-block!important;
+							}
+            </style>
+       </p>  
+       <script type="text/javascript" charset="utf-8" src="http://static.bshare.cn/b/buttonLite.js#style=-1&amp;uuid=&amp;pophcol=2&amp;lang=zh"></script><script type="text/javascript" charset="utf-8" src="http://static.bshare.cn/b/bshareC0.js"></script>
+	<script type="text/javascript"> bShare.init(); </script>
+	<script type="text/javascript">
+	  bShare.addEntry({
+	        title: $(".page-header h1").text(),
+	        url:window.location.href ,
+	        summary: $(".article-digest p").text(),
+	   	pic: $(".img-thumbnail").attr("src")
+       });
+</script>
+
+<script>
+  $(function() {
+    $('.js-confirm').click(function() {
+      var str = prompt('请输入屏蔽理由:'),
+          $ele = $(this);
+      //当有输入时
+      if(str != null && str != '') {
+        var href = $ele.attr('url'),
+            form = $('<form id="form1" method="post" action="' + href + '"></form>'),
+            metadataInput = '<input name="comment" value="'+str+'" type="hidden" />';
+
+        //添加表单并提交
+        form.hide().append(metadataInput).appendTo('body');
+        form.submit();
+      } else {
+        return;
+      }
+    });
+  })
+</script>
+
+    <% if @current_staff.present? && @current_staff.authority_of_check? %>
+      <p class="verify-group">
+      <% valid = (@article.draft? || @article.pending?) %>
+      <%= article_check_link_help('审核通过', 'check_article_allow', @article, valid) %>
+      <% valid = (@article.draft? || @article.pending? || @article.check_finished?) %>
+      <%= article_check_link_help('审核通过并发布', 'check_article_publish', @article, valid) %>
+      <% valid = (@article.draft? || @article.pending? || @article.check_finished?) %>
+      <%= article_check_link_help('审核拒绝', 'check_article_denies', @article, valid) %>
+      <% valid = (@article.draft? || @article.pending? || @article.denied?) %>
+      <%= article_check_link_help('审核转交', 'check_article_deliver', @article, valid) %>
+      <% valid = (@article.check_finished? || @article.published?) %>
+        <%= article_check_link_help_forbid('屏蔽文章', 'check_article_banned', @article, valid) %>
+      <% if false %>
+      <% valid = (@article.check_finished? || @article.published?) %>
+        <%= article_check_link_help('取下文章(重新审核)', 'check_article_deliver', @article, valid) %>
+      </p>
+      <% end %>
+
+      <br/>
+      <% end # if @current_staff.present? && @current_staff.authority_of_check? %>
+
+    </style>
+    <div class="products_pic"  id="statistics"> </div>
+    <div  class="article-list">
+       <%unless @recommend_articles[:articles].blank?%>
+       <h6>相关文章</h6>
+
+        <% if @article.id != 1020816 %>
+          <% @recommend_articles[:articles].each  do |article| %>
+                  <ul class="article-ul">
+                    <li>
+                      <% unless  article.image.nil?%>
+                          <%= render_article_link_v4(article, img_opts: { version: :thumb_left, size: '192x120' }, link_opts: { class: 'fl news-img' },subdomain:Settings::mobile_sub_domain) unless article.image.nil? %>
+                     <%else %>
+                         <%= link_to replace_subdomain(article, Settings::mobile_sub_domain)  do  %>
+                              <%= image_tag('/images/mobile_apps/logo_1.jpg', :class=> 'fl news-img')%>
+                          <%end%>
+                     <%end%>
+                      <div class="article-text">
+                        <span><%= render_article_link_v4(article, {title_limit: 20,link_opts: { class: 'news-title-a' },subdomain:Settings::mobile_sub_domain}) %></span>
+                        <abbr><%= nbd_time_f2(get_time_article(article)) %></abbr>
+                      </div>
+                    </li>
+                  </ul>
+          <%end%>
+        <% else %>
+          <% special_articles = Article.published.where(id: [902185,901886,951849,960619,1020800,1020791,989539]) %>
+          <% special_articles.each do |article| %>
+          <ul class="article-ul">
+              <li>
+                <% unless  article.image.nil?%>
+                    <%= render_article_link_v4(article, img_opts: { version: :thumb_left, size: '192x120' }, link_opts: { class: 'fl news-img' },subdomain:Settings::mobile_sub_domain) unless article.image.nil? %>
+               <%else %>
+                   <%= link_to replace_subdomain(article, Settings::mobile_sub_domain)  do  %>
+                        <%= image_tag('/images/mobile_apps/logo_1.jpg', :class=> 'fl news-img')%>
+                    <%end%>
+               <%end%>
+                <div class="article-text">
+                  <span><%= render_article_link_v4(article, {title_limit: 20,link_opts: { class: 'news-title-a' },subdomain:Settings::mobile_sub_domain}) %></span>
+                  <abbr><%= nbd_time_f2(get_time_article(article)) %></abbr>
+                </div>
+              </li>
+            </ul>
+          <% end %>
+        <% end %>
+        <% end %>
+    </div>
+
+     <div  class="article-list">
+       <%if @lastest_origin.present?%>
+          	<h6>热点</h6>
+
+                <% @lastest_origin.each  do |article| %>
+                    <ul class="article-ul">
+                    <li>
+                    <% unless  article.image.nil?%>
+                          <%= render_article_link_v4(article, img_opts: { version: :thumb_left, size: '192x120' }, link_opts: { class: 'fl news-img' },subdomain:Settings::mobile_sub_domain) unless article.image.nil? %>
+                     <%else %>
+                           <%= link_to replace_subdomain(article, Settings::mobile_sub_domain)  do  %>
+                                <%= image_tag('/images/mobile_apps/logo_1.jpg', :class=> 'fl news-img')%>
+                            <%end%>
+                     <%end%>
+                      <div class="article-text">
+                        <span><%= render_article_link_v4(article, {title_limit: 20,link_opts: { class: 'news-title-a' },subdomain:Settings::mobile_sub_domain}) %></span>
+
+                        <abbr><%= nbd_time_f2(get_time_article(article)) %></abbr>
+                      </div>
+                    </li>
+                  </ul>
+                <%end%>
+      <%end%>
+    </div>
+<!-- 评论 -->
+  <style type="text/css">
+  .vedioItem {
+    background: transparent!important;
+    height: auto!important;
+  }
+  .comment h1 {
+    font-size: 22px;
+    color: #7b7b7b
+  }
+  .comment h1 span{
+    font-size: 16px;
+    color:#585858;
+    font-weight: normal;
+    float: right;
+    margin-top: 2px
+  }
+  .comment h1 abbr{
+    color: #d44743;
+    font-size: 16px;
+  }
+  #comment-text {
+    border: 1px solid #dae4eb;
+    box-shadow: 0 0 3px #fcfdfd;
+    width: 100%;
+    height: 100px;
+    border-radius: 6px;
+    padding: 6px;
+  }
+  #form_submit {
+    width: 108px;
+    line-height: 36px;
+    background-color: #1c4895;
+    color: white;
+    border: none;
+    outline: none;
+    border-radius: 5px;
+    font-size: 20px;
+    float: right;
+    margin-top: 12px;
+    text-align: center;
+    text-decoration: none;
+  }
+  .comment-ul   {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    margin-top: 15px;
+  }
+  .comment-ul li {
+    margin:3px 0;
+  }
+  .comment-img {
+    width: 56px;
+    height: 56px;
+    border-radius: 56px;
+    float: left;
+  }
+  .comment-ul-box span,abbr{
+    color: #9f9f9f
+  }
+  .comment-ul-box abbr{
+    float: right;
+    margin-top: -2px;
+  }
+  .text-p {
+    margin-top: 5px;
+    border-bottom: 1px solid #e5e5e5;
+    padding-bottom: 12px;
+    font-size: 14px
+  }
+  .comment-ul-box {
+    float: left;
+    width: 78%;
+    margin-left: 2%
+  }
+.comment-ul li:after {
+  content:".";
+  display:block;
+  height:0;
+  clear:both;
+  visibility:hidden
+}
+ .like{
+  position: relative;
+  top: 1px;
+  display: inline-block;
+  width: 20px;
+  height: 16px;
+  background: url("/images/mobile_apps/comment_like.png") no-repeat;
+  background-size:cover
+ }
+  .like-active{
+  position: relative;
+  top: 1px;
+  display: inline-block;
+  width: 20px;
+  height: 16px;
+  background: url("/images/mobile_apps/comment_likes.png") no-repeat;
+  background-size:cover
+ }
+ #link-column a{
+   color:#7a7a7a;
+ }
+.msg-p {
+  background: #fbfbfb;
+  border:1px solid #bababa;
+  width: 60%;
+ line-height: 60px;
+  margin: 0 auto;
+  text-align: center;
+  font-size: 20px;
+  box-shadow: 0 0 3px rgba(0,0,0,.3);
+  position: fixed;
+  top: 20%;
+  left: 20%;
+  display: none;
+ }
+
+  </style>
+   
+   <script type="text/javascript">
+   $(function(){
+    // 评论提交
+    $("#form_submit").click(function(){
+      var Txt=$("#comment-text").val();
+      if(Txt==0){
+        $("#msg1").show();
+        $("#msg1").text("评论不能为空")
+        setTimeout(function(){
+         $("#msg1").hide()
+       },1000);
+        return false ;
+      }else {
+       $("#msg").show();
+       $("#msg").text("已发表成功") ;
+       setTimeout(function(){
+         $("#msg").hide()
+       },1000);
+        $.ajax({
+          url: $(this).parent("form").attr("action"),
+          data: $(this).parent("form").serialize(),
+          type: 'POST',
+        })
+        $(this).parent("form").find("#comment-text").val("")
+      }
+    })
+   //判断是否有显示评论
+   $(".comment-ul").each(function(){
+     var liLen=$(this).find("li") ;
+     if(liLen.length>0){
+      $(".comment-more").hide();
+     }else {
+      $(".comment-more").show();
+     }
+   })
+  })
+
+
+   </script>
+
+  <!-- 文章在微信平台分享的JS代码 -->
+  <script type="text/javascript" src="http://res.wx.qq.com/open/js/jweixin-1.0.0.js"></script>
+  <script>
+    // JS转换HTML转义符
+    function js_html_decode(text) {
+      var temp = document.createElement("div"); 
+      temp.innerHTML = text; 
+      var output = temp.innerText || temp.textContent; 
+      temp = null; 
+      return output;
+    }
+
+    wx.config({
+      debug: false,
+      appId: "<%= @wechat_config[:appid] %>",
+      timestamp: "<%= @wechat_config[:timestamp] %>",
+      nonceStr: "<%= @wechat_config[:noncestr] %>",
+      signature: "<%= @wechat_config[:signature] %>",
+      jsApiList: ['onMenuShareTimeline', 'onMenuShareAppMessage', 'onMenuShareQQ','onMenuShareQZone']
+    });
+    wx.ready(function(){
+      var share_title = js_html_decode('<%= @article.get_share_title(:mobile) %>');
+      var share_desc = js_html_decode('<%= @article.get_share_digest %>');
+      var share_link = '<%= @share_path %>';
+      var imageurl = '<%= @article.get_share_image_url %>';
+
+      // 分享到微信朋友圈
+      wx.onMenuShareTimeline({
+        title: share_title,
+        desc: share_desc,
+        link: share_link,
+        imgUrl: imageurl,
+        success: function () {alert(1)},
+        cancel: function () {}
+      });
+
+      //分享到微信
+      wx.onMenuShareAppMessage({
+        title: share_title,
+        desc: share_desc,
+        link: share_link,
+        imgUrl: imageurl,
+        success: function () {alert(2)},
+        cancel: function () {}
+      });
+
+      //分享到QQ
+      wx.onMenuShareQQ({
+        title: share_title, // 分享标题
+        desc: share_desc, // 分享描述
+        link: share_link, // 分享链接
+        imgUrl: imageurl, // 分享图标
+        success: function () {  },
+        cancel: function () {}
+      });
+
+      // 分享到QQ空間
+      wx.onMenuShareQZone({
+        title: share_title, // 分享标题
+        desc: share_desc, // 分享描述
+        link: share_link, // 分享链接
+        imgUrl: imageurl, // 分享图标
+        success: function () { },
+        cancel: function () {}
+      });
+    });
+  </script>
+
+ <script type="text/javascript">
+     var width = $(window).width() > 600 ? 600 : $(window).width()-50,
+      count = 0;
+      flag = $('.vedioItem').hasClass('aliyunVideo');
+
+  //判断是否为阿里云播放
+  if(flag) {
+    var arr = [];
+
+    $('.aliyunVideo').each(function(key, elem) {
+      arr.push({elem: $(elem).find('.prism-player').attr('id'), videoID: $(elem).find('.prism-player').attr('data-vid')});
+    });
+
+    //实例化运行
+    for(var i in arr) {
+      (function(i) {
+        executeRequest(arr[i].elem, arr[i].videoID);
+      })(i)
+    }
+
+  }
+
+  /**
+   * 实例化一个视频
+   * @author mao
+   * @version 1
+   * @date    2017-07-10
+   */
+  function executeRequest(elem, videoID) {
+    var that = arguments;
+    $.ajax({
+      type:'get',
+      url:'http://www.nbd.com.cn' + '/aliyun_services?aliyun_vedio=yes&timestamp=' + Date.parse(new Date()) + '&vedio_id='+ videoID,
+      success:function(res) {
+        var option = {id: elem,autoplay: false ,width: width+"px",height: (width*3/4)+"px",vid: videoID,playauth: res.playAuth, showBarTime: 3000000, cover: res.vidio_data.VideoMeta.CoverURL};
+
+        var player = new prismplayer(option);
+      },
+      error: function(xml, err, data) {
+        if(err == 'error') {
+          console.log(err, data);
+        }
+      }
+    });
+  }
+
+ </script>
+
+  </p>
+	<style type="text/css">
+	  .bottom-nav {
+	      width: 100%;
+	      height: 48px;
+	      background-color:#f0f8ff;
+	      margin: 0;
+	      padding: 0;
+   	   }
+	    .bottom-left {
+	       float: right;
+	       height: 48px;
+	    }
+	    .bottom-left img {
+	       width: 85%;
+	       margin: 0 auto;
+	       max-width: 280px;
+	       margin-top: 10px;
+	       display: block
+	    }
+	    .bottom-right {
+	       float: right;
+	       height: 48px;
+	    }
+	     .jj {
+		    width: 80%;
+		    height: 40px;
+		    margin: 4px 0;
+		    max-width:56px;
+		    float: right;
+		    max-width:60px;
+		    margin-right: 3px;
+		    border-radius: 5px;
+	  }
+        .m_pictrue{
+          width: 100%;
+          margin-bottom: 20px;
+        }
+	</style>
+	<script type="text/javascript">
+		var div1=document.getElementById("cookies");
+	    var b=document.getElementById("b");
+	    var arr = document.cookie.split(';');
+	    var  flag=true ;
+	    for(var i=0;i<arr.length;i++){
+	      arr[i]=arr[i].trim();
+	      if(arr[i]=='NoneDisplay=true'){
+	        div1.style.display='none';
+	        b.style.background='transparent';
+	        flag=false;
+	        add();
+	        break;
+	      }
+	    };
+      $(".jj").on("touchstart",function(){
+        if(flag==true){
+          var d = new Date();
+          d.setHours(d.getHours()+3);
+            // d.setMinutes(d.getMinutes()+1);
+            document.cookie="NoneDisplay=true;expires="+d.toUTCString()+";path=/";
+            flag=false
+          $(".bottom-nav").css({
+              "background":" transparent"
+            })
+          add()
+          $("#cookies").animate({
+            "width":"0",
+           },300,function(){
+            $("#cookies").hide()
+           })
+           flag=false
+        }
+        else {
+          $("#cookies").show()
+          add1();
+            $(".bottom-nav").css({
+              "background":"#f0f8ff "
+            })
+          $("#cookies").animate({
+            "width":"83%"
+          })
+          flag=true
+        }
+      })
+      function add(){
+        $(".jj").attr("src","http://www.nbdpress.com/corp/2016app/images/exit.jpg")
+      }
+      function add1(){
+        $(".jj").attr("src","http://www.nbdpress.com/corp/2016app/images/shou.png")
+      }
+
+    var imgs = $(".article-ul a img");
+    for(var i=0;i<imgs.length;i++){
+      //imgs[i].attr('src',this.attr('data-aload'));
+      var url = imgs[i].getAttribute('data-aload');
+      if( url != null && url.length > 0){
+        imgs[i].setAttribute('src',url);
+      }
+    }
+</script>
+<script type="text/javascript">
+  //评论点赞
+   var liLens=$(".comment-ul li").length;
+   for(var i=0;i<liLens;i++){
+     $(".like").eq(i).attr("data-id",i)
+    }
+    var article_ids = <%= @article.id %> ;
+    var flag=true ;
+    function setCookie(c_name,value){
+        var exdate=new Date()
+         var newDate = new Date();
+         newDate.setHours(newDate.getHours()+24);
+         document.cookie=c_name+ "=" +value;expires="+d.toUTCString()+";
+      }
+     function getCookie(c_name) {
+        if (document.cookie.length>0)
+          {
+          c_start=document.cookie.indexOf(c_name + "=")
+          if (c_start!=-1)
+            {
+            c_start=c_start + c_name.length+1
+            c_end=document.cookie.indexOf(";",c_start)
+            if (c_end==-1) c_end=document.cookie.length
+            return unescape(document.cookie.substring(c_start,c_end))
+            }
+          }
+          return ""
+        }
+          $(".like").click(function(obj){
+            var $this=$(this);
+            var review_id = this.getAttribute("reveiw-id");
+            $(this).removeClass("like").addClass("like-active") ;
+            if (getCookie(review_id) !== ""){
+                 $("#msg2").show();
+                  $("#msg2").text("您已经赞过了")
+                  setTimeout(function(){
+                   $("#msg2").hide()
+                 },1000);
+                return false;
+            }else{
+              $.ajax({
+                      type: 'POST',
+                      url:"/reviews/"+review_id+"/support",
+                      success: function(data) {
+                          var num = data.data.support_num;
+                          $this.siblings(".like-b").text(num);
+                          $this.attr("upvote","yes");
+                          setCookie(review_id,"yes");
+                      }
+                });
+            }
+
+      })
+
+
+</script>
+<%# end %>
+<script type="text/javascript">
+     (function(window){
+		var eDise = 320/240,
+		sizeFun = function(){
+		var div_vedio = document.getElementById('sunow_box');
+		if(div_vedio){
+		div_vedio.style.height = div_vedio.offsetWidth/eDise+'px';
+		}
+		};
+		sizeFun();
+		window.onresize = sizeFun;
+	})(window)
+</script>
